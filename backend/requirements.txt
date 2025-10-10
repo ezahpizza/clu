@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+sqlmodel
+sqlalchemy
+psycopg[binary]
+alembic
+pydantic-settings
+passlib[bcrypt]
+pyjwt
+python-multipart
+resend
+jinja2
+sentry-sdk
+tenacity
+google-genai
+pinecone-client
+neo4j
