@@ -82,7 +82,7 @@ def test_get_existing_user_current_user(client: TestClient, db: Session) -> None
     user_id = user.id
 
     login_data = {
-        "username": username,
+        "email": username,
         "password": password,
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
@@ -389,7 +389,7 @@ def test_delete_user_me(client: TestClient, db: Session) -> None:
     user_id = user.id
 
     login_data = {
-        "username": username,
+        "email": username,
         "password": password,
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)

@@ -10,7 +10,7 @@ from tests.utils.utils import random_email, random_lower_string
 def user_authentication_headers(
     *, client: TestClient, email: str, password: str
 ) -> dict[str, str]:
-    data = {"username": email, "password": password}
+    data = {"email": email, "password": password}
 
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=data)
     response = r.json()

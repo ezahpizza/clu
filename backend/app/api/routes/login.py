@@ -1,9 +1,8 @@
 from datetime import timedelta
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse
-from fastapi.security import OAuth2PasswordRequestForm
 
 from app import crud
 from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
@@ -21,15 +20,44 @@ from app.utils import (
 router = APIRouter(tags=["login"])
 
 
+class OAuth2PasswordRequestFormEmail:
+    """OAuth2 password form variant that accepts both `username` and `email` for flexibility."""
+
+    def __init__(
+        self,
+        *,
+        grant_type: Annotated[str | None, Form(pattern="password")] = None,
+        username: Annotated[str | None, Form()] = None,
+        email: Annotated[str | None, Form()] = None,
+        password: Annotated[str, Form()],
+        scope: Annotated[str, Form()] = "",
+        client_id: Annotated[str | None, Form()] = None,
+        client_secret: Annotated[str | None, Form()] = None,
+    ) -> None:
+        # Accept either username or email, with email taking precedence
+        if not username and not email:
+            raise ValueError("Either username or email must be provided")
+        
+        self.grant_type = grant_type
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.scopes = scope.split()
+        self.scope = scope
+        self.password = password
+        self.email = email or username
+        self.username = username or email
+
+
 @router.post("/login/access-token")
 def login_access_token(
-    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    session: SessionDep,
+    form_data: Annotated[OAuth2PasswordRequestFormEmail, Depends()],
 ) -> Token:
     """
     OAuth2 compatible token login, get an access token for future requests
     """
     user = crud.authenticate(
-        session=session, email=form_data.username, password=form_data.password
+        session=session, email=form_data.email, password=form_data.password
     )
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
@@ -112,7 +140,7 @@ def recover_password_html_content(email: str, session: SessionDep) -> Any:
     if not user:
         raise HTTPException(
             status_code=404,
-            detail="The user with this username does not exist in the system.",
+            detail="The user with this email does not exist in the system.",
         )
     password_reset_token = generate_password_reset_token(email=email)
     email_data = generate_reset_password_email(

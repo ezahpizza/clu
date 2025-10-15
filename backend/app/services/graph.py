@@ -6,7 +6,7 @@ from typing import Iterable
 from fastapi import HTTPException, status
 
 from app.core.config import settings
-from app.models import GraphContext, KnowledgeEntry, User
+from app.models import GraphContext, Note, User
 
 
 class GraphService:
@@ -32,7 +32,7 @@ class GraphService:
             )
         return self._driver
 
-    def sync_entry(self, *, entry: KnowledgeEntry, owner: User) -> None:
+    def sync_entry(self, *, entry: Note, owner: User) -> None:
         driver = self._ensure_driver()
         tags: Iterable[str] = entry.tags or []
         with driver.session() as session:

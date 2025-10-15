@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from google import genai
 
 from app.core.config import settings
-from app.models import InsightQuery, InsightResponse, KnowledgeEntryPublic
+from app.models import InsightQuery, InsightResponse, NotePublic
 from app.services.embedding import EmbeddingService
 
 
@@ -25,7 +25,7 @@ class InsightService:
         embedding = self._embedding_service.generate(question)
         return list(embedding.vector)
 
-    def generate(self, *, query: InsightQuery, context_entries: Iterable[KnowledgeEntryPublic]) -> InsightResponse:
+    def generate(self, *, query: InsightQuery, context_entries: Iterable[NotePublic]) -> InsightResponse:
         if not settings.gemini_enabled:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -51,7 +51,7 @@ class InsightService:
     def _build_prompt(
         *,
         query: InsightQuery,
-        references: Iterable[KnowledgeEntryPublic],
+        references: Iterable[NotePublic],
     ) -> str:
         lines = [
             "You are CLU, a temporal knowledge analyst.",

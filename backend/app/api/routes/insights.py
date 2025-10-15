@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.api import deps
-from app.models import InsightQuery, InsightResponse, KnowledgeEntry, KnowledgeEntryPublic, User
+from app.models import InsightQuery, InsightResponse, Note, NotePublic, User
 from app.services.insights import InsightService
 from app.services.vector_store import VectorStoreService
 
@@ -23,10 +23,10 @@ def _load_entries_by_ids(
     *,
     session: Session,
     entry_ids: list[uuid.UUID],
-) -> dict[str, KnowledgeEntry]:
+) -> dict[str, Note]:
     if not entry_ids:
         return {}
-    statement = select(KnowledgeEntry).where(KnowledgeEntry.id.in_(entry_ids))
+    statement = select(Note).where(Note.id.in_(entry_ids))
     entries = session.exec(statement).all()
     return {str(entry.id): entry for entry in entries}
 
@@ -36,15 +36,15 @@ def _fallback_entries(
     session: Session,
     owner_id: uuid.UUID,
     query: InsightQuery,
-) -> list[KnowledgeEntryPublic]:
-    statement = select(KnowledgeEntry).where(KnowledgeEntry.owner_id == owner_id)
+) -> list[NotePublic]:
+    statement = select(Note).where(Note.owner_id == owner_id)
     if query.time_start:
-        statement = statement.where(KnowledgeEntry.created_at >= query.time_start)
+        statement = statement.where(Note.created_at >= query.time_start)
     if query.time_end:
-        statement = statement.where(KnowledgeEntry.created_at <= query.time_end)
-    statement = statement.order_by(KnowledgeEntry.updated_at.desc()).limit(query.top_k)
+        statement = statement.where(Note.created_at <= query.time_end)
+    statement = statement.order_by(Note.updated_at.desc()).limit(query.top_k)
     entries = session.exec(statement).all()
-    return [KnowledgeEntryPublic.model_validate(entry) for entry in entries]
+    return [NotePublic.model_validate(entry) for entry in entries]
 
 
 @router.post("/query", response_model=InsightResponse)
@@ -57,7 +57,7 @@ def insights_query(
     payload: InsightQuery,
 ) -> InsightResponse:
     target_user = _resolve_user(current_user, payload.user_id)
-    context_entries: list[KnowledgeEntryPublic] = []
+    context_entries: list[NotePublic] = []
     if vector_store.available:
         embedding_vector = insight_service.embed_question(question=payload.question)
         matches = vector_store.query(
@@ -78,7 +78,7 @@ def insights_query(
                 continue
             if payload.time_end and entry.created_at > payload.time_end:
                 continue
-            context_entries.append(KnowledgeEntryPublic.model_validate(entry))
+            context_entries.append(NotePublic.model_validate(entry))
     if not context_entries:
         context_entries = _fallback_entries(session=session, owner_id=target_user, query=payload)
     return insight_service.generate(query=payload, context_entries=context_entries)

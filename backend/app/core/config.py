@@ -62,7 +62,7 @@ class Settings(BaseSettings):
 
     GEMINI_API_KEY: str | None = None
     GEMINI_EMBEDDING_MODEL: str = "models/embedding-001"
-    GEMINI_COMPLETION_MODEL: str = "gemini-1.5-flash"
+    GEMINI_COMPLETION_MODEL: str = "gemini-2.5-flash"
 
     DEFAULT_EMBEDDING_PROVIDER: Literal["gemini"] = "gemini"
     TAVILY_API_KEY: str | None = None

@@ -5,9 +5,9 @@ from sqlmodel import Session, select
 
 from app.core.security import get_password_hash, verify_password
 from app.models import (
-    KnowledgeEntry,
-    KnowledgeEntryCreate,
-    KnowledgeEntryUpdate,
+    Note,
+    NoteCreate,
+    NoteUpdate,
     User,
     UserCreate,
     UserUpdate,
@@ -45,8 +45,17 @@ def get_user_by_email(*, session: Session, email: str) -> User | None:
     return session_user
 
 
+def get_user_by_username(*, session: Session, username: str) -> User | None:
+    statement = select(User).where(User.username == username)
+    session_user = session.exec(statement).first()
+    return session_user
+
+
 def authenticate(*, session: Session, email: str, password: str) -> User | None:
+    # Try to find user by email first, then by username
     db_user = get_user_by_email(session=session, email=email)
+    if not db_user:
+        db_user = get_user_by_username(session=session, username=email)
     if not db_user:
         return None
     if not verify_password(password, db_user.hashed_password):
@@ -55,9 +64,9 @@ def authenticate(*, session: Session, email: str, password: str) -> User | None:
 
 
 def create_entry(
-    *, session: Session, entry_in: KnowledgeEntryCreate, owner_id: uuid.UUID
-) -> KnowledgeEntry:
-    entry = KnowledgeEntry.model_validate(entry_in, update={"owner_id": owner_id})
+    *, session: Session, entry_in: NoteCreate, owner_id: uuid.UUID
+) -> Note:
+    entry = Note.model_validate(entry_in, update={"owner_id": owner_id})
     session.add(entry)
     session.commit()
     session.refresh(entry)
@@ -67,9 +76,9 @@ def create_entry(
 def update_entry(
     *,
     session: Session,
-    entry: KnowledgeEntry,
-    entry_in: KnowledgeEntryUpdate,
-) -> KnowledgeEntry:
+    entry: Note,
+    entry_in: NoteUpdate,
+) -> Note:
     entry_data = entry_in.model_dump(exclude_unset=True)
     entry.sqlmodel_update(entry_data)
     entry.updated_at = utcnow()

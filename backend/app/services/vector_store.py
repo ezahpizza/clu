@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from app.core.config import settings
-from app.models import KnowledgeEntry
+from app.models import Note
 
 
 class VectorStoreService:
@@ -20,6 +20,33 @@ class VectorStoreService:
             if settings.PINECONE_ENVIRONMENT:
                 environment["environment"] = settings.PINECONE_ENVIRONMENT
             self._client = Pinecone(api_key=settings.PINECONE_API_KEY, **environment)
+            self._ensure_index_exists()
+
+    def _ensure_index_exists(self) -> None:
+        """Create the Pinecone index if it doesn't exist."""
+        if not self._client or not self._index_name:
+            return
+        
+        try:
+            from pinecone import ServerlessSpec
+            
+            # Check if index exists
+            existing_indexes = [index.name for index in self._client.list_indexes()]
+            
+            if self._index_name not in existing_indexes:
+                # Create index with dimension 768 for Gemini embedding-001 model
+                self._client.create_index(
+                    name=self._index_name,
+                    dimension=768,  # Gemini embedding-001 dimension
+                    metric="cosine",
+                    spec=ServerlessSpec(
+                        cloud="aws",
+                        region="us-east-1"
+                    )
+                )
+                print(f"Created Pinecone index: {self._index_name}")
+        except Exception as e:
+            print(f"Warning: Could not ensure Pinecone index exists: {e}")
 
     @property
     def available(self) -> bool:
@@ -36,7 +63,7 @@ class VectorStoreService:
     def upsert_entry(
         self,
         *,
-        entry: KnowledgeEntry,
+        entry: Note,
         vector: list[float],
         provider: str,
         model: str,

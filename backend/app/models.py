@@ -12,6 +12,7 @@ def utcnow() -> datetime:
 
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
+    username: str = Field(unique=True, index=True, min_length=3, max_length=50)
     is_active: bool = True
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
@@ -23,18 +24,21 @@ class UserCreate(UserBase):
 
 class UserRegister(SQLModel):
     email: EmailStr = Field(max_length=255)
+    username: str = Field(min_length=3, max_length=50)
     password: str = Field(min_length=8, max_length=40)
     full_name: str | None = Field(default=None, max_length=255)
 
 
 class UserUpdate(UserBase):
     email: EmailStr | None = Field(default=None, max_length=255)  # type: ignore
+    username: str | None = Field(default=None, min_length=3, max_length=50)  # type: ignore
     password: str | None = Field(default=None, min_length=8, max_length=40)
 
 
 class UserUpdateMe(SQLModel):
     full_name: str | None = Field(default=None, max_length=255)
     email: EmailStr | None = Field(default=None, max_length=255)
+    username: str | None = Field(default=None, min_length=3, max_length=50)
 
 
 class UpdatePassword(SQLModel):
@@ -45,7 +49,7 @@ class UpdatePassword(SQLModel):
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
-    entries: list["KnowledgeEntry"] = Relationship(
+    entries: list["Note"] = Relationship(
         back_populates="owner", cascade_delete=True
     )
 
@@ -59,26 +63,24 @@ class UsersPublic(SQLModel):
     count: int
 
 
-class KnowledgeEntryBase(SQLModel):
+class NoteBase(SQLModel):
     title: str = Field(min_length=1, max_length=255)
     content: str = Field(min_length=1)
     tags: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
-    summary: str | None = Field(default=None, max_length=2000)
 
 
-class KnowledgeEntryCreate(KnowledgeEntryBase):
+class NoteCreate(NoteBase):
     pass
 
 
-class KnowledgeEntryUpdate(SQLModel):
+class NoteUpdate(SQLModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
     content: str | None = Field(default=None, min_length=1)
     tags: list[str] | None = None
-    summary: str | None = Field(default=None, max_length=2000)
 
 
-class KnowledgeEntry(KnowledgeEntryBase, table=True):
-    __tablename__ = "knowledge_entries"
+class Note(NoteBase, table=True):
+    __tablename__ = "notes"
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     owner_id: uuid.UUID = Field(
         foreign_key="user.id", nullable=False, ondelete="CASCADE"
@@ -98,7 +100,7 @@ class KnowledgeEntry(KnowledgeEntryBase, table=True):
     owner: User | None = Relationship(back_populates="entries")
 
 
-class KnowledgeEntryPublic(KnowledgeEntryBase):
+class NotePublic(NoteBase):
     id: uuid.UUID
     owner_id: uuid.UUID
     created_at: datetime
@@ -108,7 +110,7 @@ class KnowledgeEntryPublic(KnowledgeEntryBase):
 
 
 class KnowledgeEntriesPublic(SQLModel):
-    data: list[KnowledgeEntryPublic]
+    data: list[NotePublic]
     count: int
 
 
@@ -119,7 +121,7 @@ class VectorSearchRequest(SQLModel):
 
 
 class VectorSearchResult(SQLModel):
-    entry: KnowledgeEntryPublic
+    entry: NotePublic
     score: float
 
 
@@ -140,7 +142,7 @@ class TimelineQuery(SQLModel):
 class TimelinePoint(SQLModel):
     period_start: datetime
     period_end: datetime
-    entries: list[KnowledgeEntryPublic]
+    entries: list[NotePublic]
 
 
 class TimelineResponse(SQLModel):
@@ -162,7 +164,7 @@ class InsightQuery(SQLModel):
 
 class InsightResponse(SQLModel):
     answer: str
-    references: list[KnowledgeEntryPublic]
+    references: list[NotePublic]
 
 
 class Message(SQLModel):

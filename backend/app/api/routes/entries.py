@@ -8,10 +8,10 @@ from app.api import deps
 from app.models import (
     EmbeddingReindexRequest,
     KnowledgeEntriesPublic,
-    KnowledgeEntry,
-    KnowledgeEntryCreate,
-    KnowledgeEntryPublic,
-    KnowledgeEntryUpdate,
+    Note,
+    NoteCreate,
+    NotePublic,
+    NoteUpdate,
     Message,
     User,
 )
@@ -21,7 +21,7 @@ from app.services.vector_store import VectorStoreService
 router = APIRouter(prefix="/entries", tags=["entries"])
 
 
-def _authorize_entry_owner(entry: KnowledgeEntry, current_user: User) -> None:
+def _authorize_entry_owner(entry: Note, current_user: User) -> None:
     if current_user.is_superuser:
         return
     if entry.owner_id != current_user.id:
@@ -40,47 +40,47 @@ def list_entries(
     if limit <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Limit must be positive")
     page_size = min(limit, 200)
-    statement = select(KnowledgeEntry)
-    count_statement = select(func.count()).select_from(KnowledgeEntry)
+    statement = select(Note)
+    count_statement = select(func.count()).select_from(Note)
     if current_user.is_superuser:
         if user_id:
-            statement = statement.where(KnowledgeEntry.owner_id == user_id)
-            count_statement = count_statement.where(KnowledgeEntry.owner_id == user_id)
+            statement = statement.where(Note.owner_id == user_id)
+            count_statement = count_statement.where(Note.owner_id == user_id)
     else:
-        statement = statement.where(KnowledgeEntry.owner_id == current_user.id)
-        count_statement = count_statement.where(KnowledgeEntry.owner_id == current_user.id)
+        statement = statement.where(Note.owner_id == current_user.id)
+        count_statement = count_statement.where(Note.owner_id == current_user.id)
     if tag:
-        statement = statement.where(KnowledgeEntry.tags.contains([tag]))
-        count_statement = count_statement.where(KnowledgeEntry.tags.contains([tag]))
-    statement = statement.order_by(KnowledgeEntry.created_at.desc()).offset(skip).limit(page_size)
+        statement = statement.where(Note.tags.contains([tag]))
+        count_statement = count_statement.where(Note.tags.contains([tag]))
+    statement = statement.order_by(Note.created_at.desc()).offset(skip).limit(page_size)
     entries = session.exec(statement).all()
     count = session.exec(count_statement).one()
     return KnowledgeEntriesPublic(data=entries, count=count)
 
 
-@router.get("/{entry_id}", response_model=KnowledgeEntryPublic)
+@router.get("/{entry_id}", response_model=NotePublic)
 def get_entry(
     *,
     session: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
     entry_id: uuid.UUID,
-) -> KnowledgeEntry:
-    entry = session.get(KnowledgeEntry, entry_id)
+) -> Note:
+    entry = session.get(Note, entry_id)
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found")
     _authorize_entry_owner(entry, current_user)
     return entry
 
 
-@router.post("/", response_model=KnowledgeEntryPublic, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=NotePublic, status_code=status.HTTP_201_CREATED)
 def create_entry(
     *,
     session: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
     embedding_service: EmbeddingService = Depends(deps.get_embedding_service),
     vector_store: VectorStoreService = Depends(deps.get_vector_store_service),
-    entry_in: KnowledgeEntryCreate,
-) -> KnowledgeEntry:
+    entry_in: NoteCreate,
+) -> Note:
     entry = crud.create_entry(session=session, entry_in=entry_in, owner_id=current_user.id)
     embedding = embedding_service.generate(entry.content)
     entry.embedding_provider = embedding.provider
@@ -98,7 +98,7 @@ def create_entry(
     return entry
 
 
-@router.patch("/{entry_id}", response_model=KnowledgeEntryPublic)
+@router.patch("/{entry_id}", response_model=NotePublic)
 def update_entry(
     *,
     session: Session = Depends(deps.get_db),
@@ -106,9 +106,9 @@ def update_entry(
     embedding_service: EmbeddingService = Depends(deps.get_embedding_service),
     vector_store: VectorStoreService = Depends(deps.get_vector_store_service),
     entry_id: uuid.UUID,
-    entry_in: KnowledgeEntryUpdate,
-) -> KnowledgeEntry:
-    entry = session.get(KnowledgeEntry, entry_id)
+    entry_in: NoteUpdate,
+) -> Note:
+    entry = session.get(Note, entry_id)
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found")
     _authorize_entry_owner(entry, current_user)
@@ -138,7 +138,7 @@ def delete_entry(
     vector_store: VectorStoreService = Depends(deps.get_vector_store_service),
     entry_id: uuid.UUID,
 ) -> Message:
-    entry = session.get(KnowledgeEntry, entry_id)
+    entry = session.get(Note, entry_id)
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found")
     _authorize_entry_owner(entry, current_user)
@@ -149,7 +149,7 @@ def delete_entry(
     return Message(message="Entry deleted successfully")
 
 
-@router.post("/reindex", response_model=KnowledgeEntryPublic)
+@router.post("/reindex", response_model=NotePublic)
 def reindex_entry(
     *,
     session: Session = Depends(deps.get_db),
@@ -157,8 +157,8 @@ def reindex_entry(
     embedding_service: EmbeddingService = Depends(deps.get_embedding_service),
     vector_store: VectorStoreService = Depends(deps.get_vector_store_service),
     payload: EmbeddingReindexRequest,
-) -> KnowledgeEntry:
-    entry = session.get(KnowledgeEntry, payload.entry_id)
+) -> Note:
+    entry = session.get(Note, payload.entry_id)
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found")
     _authorize_entry_owner(entry, current_user)

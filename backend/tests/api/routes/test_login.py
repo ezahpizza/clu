@@ -14,7 +14,7 @@ from tests.utils.utils import random_email, random_lower_string
 
 def test_get_access_token(client: TestClient) -> None:
     login_data = {
-        "username": settings.FIRST_SUPERUSER,
+        "email": settings.FIRST_SUPERUSER,
         "password": settings.FIRST_SUPERUSER_PASSWORD,
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
@@ -26,7 +26,7 @@ def test_get_access_token(client: TestClient) -> None:
 
 def test_get_access_token_incorrect_password(client: TestClient) -> None:
     login_data = {
-        "username": settings.FIRST_SUPERUSER,
+        "email": settings.FIRST_SUPERUSER,
         "password": "incorrect",
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)

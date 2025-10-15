@@ -1,4 +1,4 @@
-"""Update schema for KnowledgeEntry model
+"""Update schema for Note model
 
 Revision ID: 1e0ef55fe8b1
 Revises: 

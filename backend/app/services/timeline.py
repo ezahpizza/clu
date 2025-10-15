@@ -4,17 +4,17 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Iterable
 
-from app.models import KnowledgeEntry, KnowledgeEntryPublic, TimelinePoint, TimelineResponse
+from app.models import Note, NotePublic, TimelinePoint, TimelineResponse
 
 
 class TimelineService:
-    def build(self, entries: Iterable[KnowledgeEntry]) -> TimelineResponse:
-        buckets: dict[datetime, list[KnowledgeEntryPublic]] = defaultdict(list)
+    def build(self, entries: Iterable[Note]) -> TimelineResponse:
+        buckets: dict[datetime, list[NotePublic]] = defaultdict(list)
         for entry in entries:
             bucket_start = entry.created_at.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             if entry.created_at.tzinfo is None:
                 bucket_start = bucket_start.replace(tzinfo=timezone.utc)
-            buckets[bucket_start].append(KnowledgeEntryPublic.model_validate(entry))
+            buckets[bucket_start].append(NotePublic.model_validate(entry))
         points: list[TimelinePoint] = []
         for start in sorted(buckets.keys()):
             if start.month == 12:

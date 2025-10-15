@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import Session, select
 
 from app.api import deps
-from app.models import KnowledgeEntry, TimelineQuery, TimelineResponse, User
+from app.models import Note, TimelineQuery, TimelineResponse, User
 from app.services.timeline import TimelineService
 
 router = APIRouter(prefix="/timeline", tags=["timeline"])
@@ -25,13 +25,13 @@ def _load_entries(
     owner_id: uuid.UUID,
     start: datetime | None,
     end: datetime | None,
-) -> list[KnowledgeEntry]:
-    statement = select(KnowledgeEntry).where(KnowledgeEntry.owner_id == owner_id)
+) -> list[Note]:
+    statement = select(Note).where(Note.owner_id == owner_id)
     if start:
-        statement = statement.where(KnowledgeEntry.created_at >= start)
+        statement = statement.where(Note.created_at >= start)
     if end:
-        statement = statement.where(KnowledgeEntry.created_at <= end)
-    statement = statement.order_by(KnowledgeEntry.created_at.asc())
+        statement = statement.where(Note.created_at <= end)
+    statement = statement.order_by(Note.created_at.asc())
     return session.exec(statement).all()
 
 

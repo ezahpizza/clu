@@ -8,7 +8,7 @@ from app.api import deps
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
 from app.models import (
-    KnowledgeEntry,
+    Note,
     Message,
     UpdatePassword,
     User,
@@ -162,6 +162,12 @@ def register_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The user with this email already exists in the system",
         )
+    existing_username = crud.get_user_by_username(session=session, username=user_in.username)
+    if existing_username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The user with this username already exists in the system",
+        )
     user_create = UserCreate.model_validate(user_in)
     return crud.create_user(session=session, user_create=user_create)
 
@@ -235,7 +241,7 @@ def _purge_user_entries(
     vector_store: VectorStoreService,
 ) -> None:
     entries = session.exec(
-        select(KnowledgeEntry).where(KnowledgeEntry.owner_id == user_id)
+        select(Note).where(Note.owner_id == user_id)
     ).all()
     if vector_store.available:
         for entry in entries:

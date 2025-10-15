@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 
 from app.api import deps
-from app.models import GraphContext, KnowledgeEntry, User
+from app.models import GraphContext, Note, User
 from app.services.graph import GraphService
 
 router = APIRouter(prefix="/graph", tags=["graph"])
@@ -18,7 +18,7 @@ def sync_entry(
     graph_service: GraphService = Depends(deps.get_graph_service),
     entry_id: uuid.UUID,
 ) -> None:
-    entry = session.get(KnowledgeEntry, entry_id)
+    entry = session.get(Note, entry_id)
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found")
     if not current_user.is_superuser and entry.owner_id != current_user.id:
@@ -51,7 +51,7 @@ def entry_context(
     graph_service: GraphService = Depends(deps.get_graph_service),
     entry_id: uuid.UUID,
 ) -> GraphContext:
-    entry = session.get(KnowledgeEntry, entry_id)
+    entry = session.get(Note, entry_id)
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found")
     if not current_user.is_superuser and entry.owner_id != current_user.id:

@@ -5,8 +5,8 @@ from sqlmodel import Session, select
 
 from app.api import deps
 from app.models import (
-    KnowledgeEntry,
-    KnowledgeEntryPublic,
+    Note,
+    NotePublic,
     VectorSearchRequest,
     VectorSearchResponse,
     VectorSearchResult,
@@ -44,7 +44,7 @@ def vector_search(
     entry_ids = [uuid.UUID(match["entry_id"]) for match in matches if match.get("entry_id")]
     if not entry_ids:
         return VectorSearchResponse(results=[])
-    statement = select(KnowledgeEntry).where(KnowledgeEntry.id.in_(entry_ids))
+    statement = select(Note).where(Note.id.in_(entry_ids))
     entries = session.exec(statement).all()
     entries_map = {str(entry.id): entry for entry in entries}
     results: list[VectorSearchResult] = []
@@ -54,5 +54,5 @@ def vector_search(
         entry = entries_map.get(entry_id)
         if entry is None:
             continue
-        results.append(VectorSearchResult(entry=KnowledgeEntryPublic.model_validate(entry), score=score))
+        results.append(VectorSearchResult(entry=NotePublic.model_validate(entry), score=score))
     return VectorSearchResponse(results=results)
