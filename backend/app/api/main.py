@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from .routes import entries, graph, insights, login, private, search, timeline, users, utils
+from .routes import entries, graph, insights, login, search, timeline, users, utils
 from app.core.config import settings
 
 api_router = APIRouter()
@@ -18,7 +18,7 @@ def api_root():
             "graph",
             "insights",
             "utils"
-        ] + (["private"] if settings.ENVIRONMENT == "local" else []),
+        ],
         "docs": "/docs"
     }
 
@@ -31,6 +31,3 @@ api_router.include_router(timeline.router)
 api_router.include_router(graph.router)
 api_router.include_router(insights.router)
 
-
-if settings.ENVIRONMENT == "local":
-    api_router.include_router(private.router)

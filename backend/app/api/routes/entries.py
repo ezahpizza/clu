@@ -7,7 +7,7 @@ from app import crud
 from app.api import deps
 from app.models import (
     EmbeddingReindexRequest,
-    KnowledgeEntriesPublic,
+    NotesPublic,
     Note,
     NoteCreate,
     NotePublic,
@@ -28,7 +28,7 @@ def _authorize_entry_owner(entry: Note, current_user: User) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
 
 
-@router.get("/", response_model=KnowledgeEntriesPublic)
+@router.get("/", response_model=NotesPublic)
 def list_entries(
     session: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
@@ -36,7 +36,7 @@ def list_entries(
     limit: int = 100,
     user_id: uuid.UUID | None = None,
     tag: str | None = None,
-) -> KnowledgeEntriesPublic:
+) -> NotesPublic:
     if limit <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Limit must be positive")
     page_size = min(limit, 200)
@@ -55,7 +55,7 @@ def list_entries(
     statement = statement.order_by(Note.created_at.desc()).offset(skip).limit(page_size)
     entries = session.exec(statement).all()
     count = session.exec(count_statement).one()
-    return KnowledgeEntriesPublic(data=entries, count=count)
+    return NotesPublic(data=entries, count=count)
 
 
 @router.get("/{entry_id}", response_model=NotePublic)

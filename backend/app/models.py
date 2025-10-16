@@ -109,7 +109,7 @@ class NotePublic(NoteBase):
     embedding_provider: str | None = None
 
 
-class KnowledgeEntriesPublic(SQLModel):
+class NotesPublic(SQLModel):
     data: list[NotePublic]
     count: int
 
